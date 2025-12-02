@@ -791,59 +791,45 @@ ${ok ? '✅ Parameters look good!' : '⚠️ Some values below normal range.'}`,
 
   private showFinancingMenu(): void {
     const stats = this.playerStats.current;
+    const currentRate = Math.round(this.playerStats.getCurrentInterestRate() * 100);
     
-    let statusText = 'Fertility treatments can be expensive. We offer flexible payment options.';
+    let statusText = `We offer flexible payment options.\nCurrent rate: ${currentRate}% APR`;
     if (stats.loanBalance > 0) {
-      statusText = `Current loan: $${stats.loanBalance.toLocaleString()} remaining\nMonthly payment: $${stats.monthlyPayment}/month`;
+      statusText = `Outstanding: $${stats.loanBalance.toLocaleString()}\nPayment: $${stats.monthlyPayment}/mo | Rate: ${currentRate}% APR`;
+    }
+    if (stats.loansCount > 0) {
+      statusText += `\n⚠️ Each additional loan has higher interest`;
     }
     
     const choices: Array<{ text: string; callback: () => void }> = [];
     
-    // Only show loan options if no existing loan or small balance
-    if (stats.loanBalance === 0) {
+    // Can always take more loans (but with escalating interest)
+    choices.push({
+      text: `💵 $2,000 (${currentRate}% APR)`,
+      callback: () => this.takeLoan(2000, 12),
+    });
+    choices.push({
+      text: `💰 $5,000 (${currentRate}% APR)`,
+      callback: () => this.takeLoan(5000, 18),
+    });
+    choices.push({
+      text: `🏦 $15,000 (${currentRate}% APR)`,
+      callback: () => this.takeLoan(15000, 36),
+    });
+    
+    // Payment options if has debt
+    if (stats.loanBalance > 0) {
       choices.push({
-        text: '💵 Small Loan ($2,000)',
-        callback: () => this.takeLoan(2000, 12),
-      });
-      choices.push({
-        text: '💰 Medium Loan ($5,000)',
-        callback: () => this.takeLoan(5000, 18),
-      });
-      choices.push({
-        text: '🏦 IVF Loan ($15,000)',
-        callback: () => this.takeLoan(15000, 36),
-      });
-    } else {
-      // Can pay off loan early
-      choices.push({
-        text: `💸 Pay Extra ($${Math.min(500, stats.loanBalance)})`,
+        text: `💸 Pay $${Math.min(500, stats.loanBalance, stats.money)}`,
         callback: () => this.makeExtraPayment(500),
       });
       if (stats.money >= stats.loanBalance) {
         choices.push({
-          text: `✅ Pay Off Full ($${stats.loanBalance})`,
+          text: `✅ Pay Off ($${stats.loanBalance})`,
           callback: () => this.payOffLoan(),
         });
       }
     }
-    
-    choices.push({
-      text: '📋 Learn About Options',
-      callback: () => {
-        this.messageBox.show({
-          title: 'Financing Options',
-          icon: '📋',
-          text: `Real-world options include:
-• Personal loans (8-15% APR)
-• Medical credit cards  
-• Clinic payment plans
-• Fertility grants & scholarships
-
-Visit rheafertility.com for resources.`,
-          type: 'info',
-        });
-      },
-    });
     
     choices.push({ text: '🚪 Leave', callback: () => {} });
     
@@ -857,22 +843,23 @@ Visit rheafertility.com for resources.`,
   }
   
   private takeLoan(amount: number, months: number): void {
-    const result = this.playerStats.takeLoan(amount, months, 0.08);
+    const result = this.playerStats.takeLoan(amount, months);
     const stats = this.playerStats.current;
+    const ratePercent = Math.round(result.interestRate * 100);
     
-    gameHistory.logEvent('loan_taken', `Took out $${amount} loan`, {
+    gameHistory.logEvent('loan_taken', `Took out $${amount} loan at ${ratePercent}%`, {
       gameDay: stats.cycleDay, cycleDay: stats.cycleDay, monthsElapsed: stats.monthsElapsed,
       physical: stats.physical, mental: stats.mental, relationship: stats.relationship,
       hope: stats.hope, money: stats.money,
-    }, { amount, months, monthlyPayment: result.monthlyPayment }, 'financing');
+    }, { amount, months, monthlyPayment: result.monthlyPayment, interestRate: ratePercent }, 'financing');
     
     this.messageBox.show({
       title: 'Loan Approved! 💳',
       icon: '✅',
       text: `You've received $${amount.toLocaleString()}.
 
-Monthly payment: $${result.monthlyPayment}/month for ${months} months.
-Payments are automatic each cycle.`,
+Rate: ${ratePercent}% APR | Total: $${result.totalOwed.toLocaleString()}
+Payment: $${result.monthlyPayment}/month × ${months} months`,
       type: 'success',
     }, () => this.updateBuildingHints());
   }
@@ -1237,7 +1224,16 @@ It's okay to feel disappointed. Take care of each other.`,
     this.messageBox.show({
       title: 'Start IUI Cycle?',
       icon: '💉',
-      text: `IUI (Intrauterine Insemination) places washed sperm directly in the uterus.\n\nCost: $1,500\nSuccess rate: ~${successChance}%\nTime: ~2 weeks`,
+      text: `IUI (Intrauterine Insemination)
+
+📊 HOW IT WORKS:
+1. Sperm is washed & concentrated
+2. Placed directly in uterus via catheter
+3. Shortens the sperm's journey to the egg
+
+Cost: $1,500 | Time: ~2 weeks
+Success rate: ~${successChance}% per cycle
+(vs ~${Math.round(successChance * 0.6)}% trying at home)`,
       type: 'decision',
       choices: [
         {
@@ -1260,10 +1256,17 @@ It's okay to feel disappointed. Take care of each other.`,
             this.progressTracker.advanceTo('iui');
             
             this.messageBox.show({
-              title: 'IUI Complete',
-              icon: '💉',
-              text: 'The procedure went smoothly. Now we wait...',
-              type: 'info',
+              title: 'IUI Complete ✓',
+              icon: '',
+              text: `Procedure complete! Sperm delivered directly to uterus.
+
+📊 WHAT HAPPENS NOW:
+• Sperm meets egg (hopefully!) in the next 24 hours
+• Fertilization → Implantation takes ~6-10 days
+• Test in 2 weeks
+
+Fingers crossed! 🤞`,
+              type: 'success',
             }, () => this.startTwoWeekWait(successChance));
           },
         },
@@ -1321,9 +1324,17 @@ It's okay to feel disappointed. Take care of each other.`,
     gameHistory.startTreatmentCycle('ivf', stats.monthsElapsed);
     
     this.messageBox.show({
-      title: 'Stimulation Phase',
-      icon: '💉',
-      text: '10 days of hormone injections to stimulate egg production.\n\nThis is physically and emotionally demanding.',
+      title: '💉 Stimulation (Day 1-10)',
+      icon: '',
+      text: `Hormone injections to stimulate multiple eggs.
+
+📊 ATTRITION PREVIEW:
+Expected eggs: ~${prediction.retrievedEggs}
+→ ~70% will fertilize
+→ ~40% become good embryos
+→ ~50% implant successfully
+
+This is physically demanding. Hang in there!`,
       type: 'info',
     }, () => {
       // Phase 2: Retrieval
@@ -1333,21 +1344,61 @@ It's okay to feel disappointed. Take care of each other.`,
       this.playerStats.modify({ treatmentStage: 'ivf_retrieval' });
       
       this.messageBox.show({
-        title: 'Egg Retrieval',
-        icon: '🥚',
-        text: `Retrieved ${eggsRetrieved} eggs!\n\nNow they go to the embryology lab for fertilization.`,
+        title: '🥚 Egg Retrieval',
+        icon: '',
+        text: `Retrieved: ${eggsRetrieved} eggs
+
+📊 ATTRITION:
+Started with ~${prediction.retrievedEggs} follicles
+Retrieved: ${eggsRetrieved} mature eggs
+(Not all follicles contain mature eggs)
+
+Next: Fertilization in the lab...`,
         type: eggsRetrieved >= 5 ? 'success' : 'info',
       }, () => {
-        // Phase 3: Fertilization & Development
-        const fertilized = Math.max(1, Math.round(eggsRetrieved * (0.6 + Math.random() * 0.3)));
-        const embryos = Math.max(1, Math.round(fertilized * (0.4 + Math.random() * 0.4)));
+        // Phase 3: Fertilization & Development  
+        const fertRate = 0.6 + Math.random() * 0.25;
+        const fertilized = Math.max(1, Math.round(eggsRetrieved * fertRate));
+        const embryoRate = 0.35 + Math.random() * 0.35;
+        const embryos = Math.max(0, Math.round(fertilized * embryoRate));
         
-        this.playerStats.applyEffect({ days: 5, hope: embryos >= 2 ? 10 : -5 });
+        this.playerStats.applyEffect({ days: 5, hope: embryos >= 2 ? 10 : -10 });
+        
+        const fertPercent = Math.round(fertRate * 100);
+        const embryoPercent = Math.round(embryoRate * 100);
+        
+        if (embryos === 0) {
+          // All embryos arrested - cycle failed
+          gameHistory.completeTreatmentCycle('negative', this.playerStats.current.monthsElapsed);
+          this.messageBox.show({
+            title: '💔 No Viable Embryos',
+            icon: '',
+            text: `${eggsRetrieved} eggs → ${fertilized} fertilized → 0 embryos
+
+📊 ATTRITION:
+Fertilization: ${fertPercent}% (${fertilized}/${eggsRetrieved})
+Development: None reached blastocyst stage
+
+This is heartbreaking but not uncommon. 
+Embryo attrition is a natural filter.`,
+            type: 'warning',
+          }, () => {
+            this.playerStats.applyEffect({ mental: -20, hope: -20 });
+            this.updateBuildingHints();
+          });
+          return;
+        }
         
         this.messageBox.show({
-          title: 'Embryo Development',
-          icon: '🧫',
-          text: `${fertilized} eggs fertilized → ${embryos} embryo(s) developing well.\n\nReady for transfer!`,
+          title: '🧫 Embryo Development (Day 5)',
+          icon: '',
+          text: `${eggsRetrieved} eggs → ${fertilized} fertilized → ${embryos} embryo(s)
+
+📊 ATTRITION:
+Fertilization rate: ${fertPercent}% (${fertilized}/${eggsRetrieved})
+Blastocyst rate: ${embryoPercent}% (${embryos}/${fertilized})
+
+${embryos >= 2 ? '✅ Good number of embryos!' : '⚠️ Lower than ideal, but each embryo has a chance.'}`,
           type: embryos >= 2 ? 'success' : 'info',
         }, () => {
           // Phase 4: Transfer
@@ -1356,12 +1407,20 @@ It's okay to feel disappointed. Take care of each other.`,
           this.progressTracker.advanceTo('transfer');
           
           // Calculate actual success chance based on embryo quality
-          const adjustedChance = Math.min(65, prediction.livebirthChance * (embryos >= 2 ? 1.2 : 0.8));
+          const baseImplant = embryos >= 2 ? 0.55 : 0.40;
+          const adjustedChance = Math.round(baseImplant * 100 * (0.8 + Math.random() * 0.4));
           
           this.messageBox.show({
-            title: 'Embryo Transfer',
-            icon: '🎯',
-            text: `1 embryo transferred. ${embryos > 1 ? `${embryos - 1} frozen for future use.` : ''}\n\nNow begins the two-week wait...`,
+            title: '🎯 Embryo Transfer',
+            icon: '',
+            text: `1 embryo transferred to uterus.
+${embryos > 1 ? `${embryos - 1} frozen for future cycles.` : ''}
+
+📊 FINAL STEP:
+Implantation rate: ~${adjustedChance}%
+(Many factors affect whether it sticks)
+
+Now begins the two-week wait...`,
             type: 'success',
           }, () => this.startTwoWeekWait(adjustedChance));
         });

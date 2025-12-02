@@ -36,10 +36,12 @@ export interface Stats {
   money: number;
   loanBalance: number;    // Outstanding loan amount
   monthlyPayment: number; // Monthly loan payment due
+  loansCount: number;     // Number of loans taken (for escalating interest)
   
   // Time
   cycleDay: number;
   monthsElapsed: number;
+  totalDays: number;      // Total days since starting treatment
   
   // Treatment progress
   treatmentStage: TreatmentStage;
@@ -130,8 +132,10 @@ export class PlayerStats {
       money: 5000,  // Starting savings for fertility journey
       loanBalance: 0,
       monthlyPayment: 0,
+      loansCount: 0,
       cycleDay: 1,
       monthsElapsed: 0,
+      totalDays: 0,
       treatmentStage: 'natural',
       cyclesAttempted: 0,
       iuiAttempts: 0,
@@ -150,12 +154,23 @@ export class PlayerStats {
   }
   
   /**
+   * Get current interest rate based on number of loans taken
+   * Rate escalates: 8% → 12% → 16% → 20%
+   */
+  getCurrentInterestRate(): number {
+    const baseRate = 0.08;
+    const escalation = 0.04 * this.stats.loansCount;
+    return Math.min(0.24, baseRate + escalation); // Cap at 24%
+  }
+
+  /**
    * Take out a loan for fertility treatment
    * @param amount Principal amount
    * @param months Repayment term in months
-   * @param interestRate Annual interest rate (e.g., 0.08 for 8%)
    */
-  takeLoan(amount: number, months: number = 24, interestRate: number = 0.08): { monthlyPayment: number } {
+  takeLoan(amount: number, months: number = 24): { monthlyPayment: number; interestRate: number; totalOwed: number } {
+    const interestRate = this.getCurrentInterestRate();
+    
     // Calculate monthly payment (simple interest for game simplicity)
     const totalInterest = amount * interestRate * (months / 12);
     const totalOwed = amount + totalInterest;
@@ -164,9 +179,10 @@ export class PlayerStats {
     this.stats.money += amount;
     this.stats.loanBalance += totalOwed;
     this.stats.monthlyPayment += monthlyPayment;
+    this.stats.loansCount += 1;
     
     this.notifyListeners();
-    return { monthlyPayment };
+    return { monthlyPayment, interestRate, totalOwed };
   }
   
   /**
@@ -411,6 +427,9 @@ export class PlayerStats {
   }
 
   advanceDays(days: number): { loanPaymentsMade: number } {
+    // Track total days
+    this.stats.totalDays += days;
+    
     let newDay = this.stats.cycleDay + days;
     let monthsToAdd = 0;
     

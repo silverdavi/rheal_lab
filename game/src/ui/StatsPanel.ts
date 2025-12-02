@@ -244,9 +244,11 @@ export class StatsPanel {
     this.setText('treatment', TREATMENT_NAMES[stats.treatmentStage]);
     const months = stats.monthsElapsed;
     const years = Math.floor(months / 12);
-    this.setText('time', years > 0 
-      ? `${years}y ${months % 12}m · Day ${stats.cycleDay}`
-      : `${months}m · Cycle day ${stats.cycleDay}`);
+    const totalDays = stats.totalDays || 0;
+    const timeStr = years > 0 
+      ? `${years}y ${months % 12}m`
+      : `${months}m`;
+    this.setText('time', `${timeStr} (${totalDays}d) · CD${stats.cycleDay}`);
     this.setText('money', `$${stats.money.toLocaleString()}`);
     
     // Loan info
