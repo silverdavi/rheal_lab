@@ -134,7 +134,31 @@ Science-based predictions using clinical data:
   - Rhea Fertility clinic info
   - Instruction for 1-2 sentence responses
 
-### 6. Game History (`GameHistory.ts`)
+### 6. Mobile Viewport (`game.config.ts` + `index.html`)
+
+Responsive scaling with min/max constraints:
+
+```typescript
+// Viewport bounds
+MIN_WIDTH: 320, MIN_HEIGHT: 480   // Small phones
+MAX_WIDTH: 1920, MAX_HEIGHT: 1080 // Large monitors
+
+// Phaser scale config
+scale: {
+  mode: Phaser.Scale.FIT,      // Scales to fit container
+  autoCenter: CENTER_BOTH,      // Centers in viewport
+  min: { width, height },       // Won't shrink below this
+  max: { width, height },       // Won't grow beyond this
+}
+```
+
+HTML features:
+- `viewport-fit=cover` for notched devices (iPhone X+)
+- `touch-action: none` prevents pull-to-refresh
+- Safe area insets for iOS notch/home indicator
+- `100dvh` dynamic viewport height for mobile browsers
+
+### 7. Game History (`GameHistory.ts`)
 
 Tracks all events for analytics:
 
@@ -281,7 +305,7 @@ npm run build
 - [ ] Add more treatment options (egg freezing, donor)
 - [ ] Implement IUI and IVF detailed flows
 - [ ] Add sound effects and music
-- [ ] Mobile responsive layout
+- [x] Mobile responsive layout (min/max viewport constraints added)
 - [ ] Save/load game state
 - [ ] Analytics dashboard from GameHistory
 - [ ] Multiplayer support stories

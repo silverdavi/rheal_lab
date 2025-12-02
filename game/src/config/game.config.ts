@@ -8,6 +8,12 @@ export const TILE_HEIGHT = 32;
 export const GAME_WIDTH = 1024;
 export const GAME_HEIGHT = 768;
 
+// Min/max viewport constraints for mobile responsiveness
+export const MIN_WIDTH = 320;
+export const MIN_HEIGHT = 480;
+export const MAX_WIDTH = 1920;
+export const MAX_HEIGHT = 1080;
+
 // Grid size for the game world
 export const GRID_WIDTH = 20;
 export const GRID_HEIGHT = 20;
@@ -45,6 +51,14 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
+    min: {
+      width: MIN_WIDTH,
+      height: MIN_HEIGHT,
+    },
+    max: {
+      width: MAX_WIDTH,
+      height: MAX_HEIGHT,
+    },
   },
 };
 
