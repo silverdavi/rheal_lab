@@ -41,7 +41,7 @@ export class GameScene extends Phaser.Scene {
 
   preload(): void {
     // Load Rhea Fertility logo at good quality, scale down via setScale instead
-    this.load.svg('rhea_logo', 'src/assets/rhea_logo.svg', { width: 64, height: 64 });
+    this.load.svg('rhea_logo', '/rhea_logo.svg', { width: 64, height: 64 });
   }
 
   create(): void {
