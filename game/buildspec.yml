@@ -1,0 +1,32 @@
+# AWS CodeBuild buildspec for S3/CloudFront deployment
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - cd game
+      - npm ci
+  build:
+    commands:
+      - npm run build
+  post_build:
+    commands:
+      # Sync to S3 bucket (set S3_BUCKET in CodeBuild environment variables)
+      - aws s3 sync dist/ s3://${S3_BUCKET}/ --delete
+      # Invalidate CloudFront cache (set CLOUDFRONT_DIST_ID in environment variables)
+      - |
+        if [ -n "$CLOUDFRONT_DIST_ID" ]; then
+          aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_DIST_ID} --paths "/*"
+        fi
+
+artifacts:
+  base-directory: game/dist
+  files:
+    - '**/*'
+
+cache:
+  paths:
+    - game/node_modules/**/*
+

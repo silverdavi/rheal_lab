@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Pixelated Rhea logo - three petals forming a fertility symbol -->
+  <style>
+    .petal { fill: #f5e6d3; }
+  </style>
+  
+  <!-- Top-right petal (pointing to upper right) -->
+  <rect class="petal" x="16" y="4" width="4" height="4"/>
+  <rect class="petal" x="20" y="4" width="4" height="4"/>
+  <rect class="petal" x="24" y="4" width="4" height="4"/>
+  <rect class="petal" x="20" y="8" width="4" height="4"/>
+  <rect class="petal" x="24" y="8" width="4" height="4"/>
+  <rect class="petal" x="24" y="12" width="4" height="4"/>
+  <rect class="petal" x="16" y="8" width="4" height="4"/>
+  <rect class="petal" x="12" y="8" width="4" height="4"/>
+  
+  <!-- Bottom-left petal (pointing to lower left) -->
+  <rect class="petal" x="4" y="12" width="4" height="4"/>
+  <rect class="petal" x="4" y="16" width="4" height="4"/>
+  <rect class="petal" x="4" y="20" width="4" height="4"/>
+  <rect class="petal" x="8" y="16" width="4" height="4"/>
+  <rect class="petal" x="8" y="20" width="4" height="4"/>
+  <rect class="petal" x="8" y="24" width="4" height="4"/>
+  <rect class="petal" x="12" y="20" width="4" height="4"/>
+  <rect class="petal" x="12" y="24" width="4" height="4"/>
+  
+  <!-- Bottom-right petal (pointing to lower right) -->
+  <rect class="petal" x="20" y="16" width="4" height="4"/>
+  <rect class="petal" x="24" y="16" width="4" height="4"/>
+  <rect class="petal" x="20" y="20" width="4" height="4"/>
+  <rect class="petal" x="24" y="20" width="4" height="4"/>
+  <rect class="petal" x="16" y="20" width="4" height="4"/>
+  <rect class="petal" x="16" y="24" width="4" height="4"/>
+  <rect class="petal" x="20" y="24" width="4" height="4"/>
+  
+  <!-- Center connection -->
+  <rect class="petal" x="12" y="12" width="4" height="4"/>
+  <rect class="petal" x="16" y="12" width="4" height="4"/>
+  <rect class="petal" x="12" y="16" width="4" height="4"/>
+  <rect class="petal" x="16" y="16" width="4" height="4"/>
+</svg>
+
